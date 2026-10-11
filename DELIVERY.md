@@ -10,9 +10,9 @@ A runnable local NEXA development application was implemented from an empty repo
 | `npm_config_devdir=/workspace/.node-gyp npm ci --cache /workspace/.npm-cache` | Passed; fresh frozen installation, native SQLite compile/header verification preserved |
 | `npm run typecheck` | Passed |
 | `npm run lint` | Passed |
-| `npm test` | 31 passed across 3 suites |
+| `npm test` | 42 passed across 4 suites |
 | `npm run build` | Passed with Next.js 16.4 |
-| `npm run test:e2e` | 4 passed using installed system Chromium |
+| `npm run test:e2e` | 5 passed using installed system Chromium |
 | Production server `/api/health` | Passed; SQLite connected |
 
 Browser suites verify signup, organization creation, FAQs, consent-based lead capture, consultation booking, human takeover/reply, dashboard persistence after refresh, Korean navigation/mobile menu, student/class/enrollment/cash-record persistence, configured-fee projections, HTTP tenant isolation, CSRF rejection, visitor isolation, absent-consent rejection and actual external-origin widget delivery. Unit/integration suites additionally cover booking idempotency/uniqueness/cancellation, capacity enforcement, customized fees, withdrawals, provider failures, aggregate-only AI payloads and persisted token/advice records. Provider checks use mocks and do not prove real API service behavior. CI workflow is written; a remote CI run has not occurred.
@@ -63,3 +63,8 @@ Exact startup, variables, migration and deployment instructions: README.md. Arch
 
 ## Render signup correction
 The app now trusts the server-controlled RENDER_EXTERNAL_URL alongside an explicit APP_URL, instead of comparing the public HTTPS browser origin only to the internal HTTP request URL. Secure session cookies and own-site widget checks share the same origin configuration. Verified with a local Render proxy simulation: signup 200, authenticated secure session, organization creation 201, widget session 200 and unrelated-origin rejection 403. All 31 unit/integration and 4 browser tests passed. The user’s actual hosted deployment has not yet been verified.
+
+## Unified inquiry intake delivery
+Implemented manual calls/SMS/Kakao/Instagram/email capture, consenting leads, source-specific public consultation forms and links, a shared inbox that includes existing website chats, contact/channel/status/search filters, member assignment, persisted follow-up due queue, staff-only notes and recorded external replies. OpenAI summaries and approved-FAQ reply drafts require explicit staff sharing permission and never send themselves. Existing/known contact fields and recognizable email/phone strings are removed from bounded AI inputs; free-text residual PII remains a documented limitation. External-channel send attempts are rejected; staff copy/review/send in the original app, then record their action. Actual telephone/SMS/Kakao provider collection, webhook ingestion and message delivery remain unconnected pending provider selection/access. Intake links carry self-reported source labels, not verified provider attribution. No automated follow-up notifications are claimed.
+
+Validation: 42 unit/integration tests and 5 browser suites passed, including the real manual-call/public-Kakao-link/assignment/due-followup/private-note/customer-reply workflow. No live OpenAI or telecom/Kakao provider access was verified. Migration 4 adds companion metadata/control/notes/AI-artifact tables without changing existing table layouts or discarding records. Guide: docs/INQUIRIES.md.

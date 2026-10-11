@@ -1,3 +1,4 @@
+import {createInquiry,manualSchema,intakeSchema,inquiryList,updateInquiry,addInquiryNote,inquiryDraft} from '@/inquiries';
 import { appOrigins, isAppOrigin } from '@/origin';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
@@ -37,6 +38,7 @@ async function handle(req: Request) {
  const org=String(agent.id);const action=p[2];
  // Requests originate inside our iframe, not the host document. Validate host at session creation.
  if(method==='POST')checkOrigin(req);
+ if(action==='intake'){if(method==='GET')return json({name:agent.name,agentId:agent.agent_id});if(method!=='POST')throw new HttpError(405,'POST required.');limit(`public-intake:${org}`,50,86400);const input=intakeSchema.parse(await body(req));return json(createInquiry(org,{...input,channel:'form'},null),201);}
  const visitor=req.headers.get('x-visitor-token')||'';
  if(action==='session' && method==='POST') {
  limit(`session:${org}`,100);
@@ -85,6 +87,9 @@ async function handle(req: Request) {
  }
  if(p[0]!=='orgs' || !p[1])throw new HttpError(404,'Not found.');
  const org=p[1];const action=p[2];
+ if(action==='inquiries'){authorize(req,org);if(method==='GET')return json(inquiryList(org));if(method==='POST'){const input=manualSchema.parse(await body(req));const created=createInquiry(org,input,String(u.id));return json({conversationId:created.conversationId,leadId:created.leadId},201);}if(method==='PATCH')return json(updateInquiry(org,String(u.id),await body(req)));throw new HttpError(405,'Method not allowed.');}
+ if(action==='inquiry-notes'){authorize(req,org);if(method!=='POST')throw new HttpError(405,'POST required.');return json(addInquiryNote(org,String(u.id),await body(req)));}
+ if(action==='inquiry-draft'){authorize(req,org);if(method!=='POST')throw new HttpError(405,'POST required.');return json(await inquiryDraft(org,String(u.id),await body(req)));}
  if(action==='advice'){authorize(req,org,true);if(method!=='POST')throw new HttpError(405,'POST required.');const v=z.object({locale:z.enum(['en','ko'])}).parse(await body(req));return json(await academyAdvice(org,v.locale));}
  if(action==='academy'){authorize(req,org,true);if(method==='GET')return json(academyData(org));return json(academyMutation(org,String(u.id),await body(req)));}
  authorize(req,org,method!=='GET' && ['settings','knowledge','slots','team'].includes(action));
@@ -111,7 +116,7 @@ async function handle(req: Request) {
  if(action==='inbox') {
  const v=z.object({id:uuid,state:z.enum(['ai','human','closed']).optional(),reply:z.string().trim().min(1).max(3000).optional()}).parse(b);
  if(!one('SELECT id FROM conversations WHERE id=? AND org_id=?',v.id,org))throw new HttpError(404,'Conversation not found.');
- db.transaction(()=>{if(v.state)run('UPDATE conversations SET state=? WHERE id=? AND org_id=?',v.state,v.id,org);if(v.reply){run("UPDATE conversations SET state='human' WHERE id=?",v.id);run('INSERT INTO messages VALUES(?,?,?,?,?)',id(),v.id,'staff',v.reply,now());}})();return json({ok:true});
+ db.transaction(()=>{if(v.state){run('UPDATE conversations SET state=? WHERE id=? AND org_id=?',v.state,v.id,org);for(const table of ['inquiry_details','inquiry_controls']){if(v.state==='closed')run(`UPDATE ${table} SET status='resolved' WHERE conversation_id=?`,v.id);else run(`UPDATE ${table} SET status='new' WHERE conversation_id=? AND status='resolved'`,v.id);}}if(v.reply){const external=one('SELECT channel FROM inquiry_details WHERE conversation_id=?',v.id);if(external&&external.channel!=='form')throw new HttpError(409,'External channel is not connected. Copy the reply and send it through the original channel.');run("UPDATE conversations SET state='human' WHERE id=?",v.id);run('INSERT INTO messages VALUES(?,?,?,?,?)',id(),v.id,'staff',v.reply,now());}})();return json({ok:true});
  }
  throw new HttpError(404,'Not found.');
  } catch(e) {

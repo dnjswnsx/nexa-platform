@@ -20,6 +20,8 @@ The current cloud task already has an isolated environment. Use its existing che
 
 ## Core workflow
 
+For manual call/SMS/Kakao capture, public intake links, staff assignment/follow-up and reviewed AI replies, see [docs/INQUIRIES.md](docs/INQUIRIES.md). Use **Unified Inbox** in the dashboard; direct telecom/Kakao synchronization remains unconnected.
+
 1. Register and create your academy. Development email verification is not implemented.
 2. Add approved questions and answers. Without OpenAI, the assistant answers exact matching FAQs and hands other questions to staff.
 3. Set allowed external origins in Settings; copy the actual embed code from AI Agent.
@@ -58,7 +60,7 @@ Academy guidance uses computed class aggregates, omits names of classes/students
 
 ## Database / migrations / recovery
 
-`src/db.ts` applies additive versioned migrations 1–3 on server initialization. To apply them locally, start the app and request `/api/health`. Migration versions are in `schema_migrations`. There is no PostgreSQL/Supabase migration or production RLS yet.
+`src/db.ts` applies additive versioned migrations 1–4 on server initialization. To apply them locally, start the app and request `/api/health`. Migration versions are in `schema_migrations`. There is no PostgreSQL/Supabase migration or production RLS yet.
 
 Before upgrades, use SQLite's online backup API or stop the server and copy the entire database plus any WAL/SHM state. Do not copy only the main file while a writer is active. Restore an offline backup to roll back; there is no destructive down migration. Test recovery on a copy, not your only database.
 

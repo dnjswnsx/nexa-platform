@@ -45,8 +45,13 @@ try{
  if(i===2){await api(`public/${agent}/handoff`,'POST',{},visitor);await api(`orgs/${org}/inbox`,'PATCH',{id:session.conversationId,reply:'[TEST] A demo staff member can help you choose a class. This is synthetic activity.'});}
  if(i===3)await api(`orgs/${org}/leads`,'PATCH',{id:lead.leadId,status:'Qualified'});
  }
+ for(const channel of ['call','sms','kakao']){
+ const inquiry=await api(`orgs/${org}/inquiries`,'POST',{name:`Test ${channel} Guardian [TEST]`,email:`test-${channel}@example.test`,phone:'',message:`[TEST] A manually recorded ${channel} inquiry about consultation options.`,channel,source:channel,consent:true,adult:true,requestKey:randomUUID()});
+ const auth=await api('auth');await api(`orgs/${org}/inquiries`,'PATCH',{id:inquiry.conversationId,status:'waiting',assignedUserId:auth.user.id,followUpAt:new Date(Date.now()+86400000).toISOString()});
+ await api(`orgs/${org}/inquiry-notes`,'POST',{id:inquiry.conversationId,kind:'note',body:'[TEST] Synthetic manual capture only. No provider connection or actual communication.'});
+ }
  academy=await api(`orgs/${org}/academy`);dashboard=await api(`orgs/${org}`);
- if(academy.students.length!==12||academy.enrollments.length!==12||dashboard.leads.length!==3||dashboard.appointments.length!==1)throw new Error('Seed verification failed.');
+ if(academy.students.length!==12||academy.enrollments.length!==12||dashboard.leads.length!==6||dashboard.appointments.length!==1)throw new Error('Seed verification failed.');
  await api('auth/logout','POST',{});
  await api('auth/login','POST',{email,password});const auth=await api('auth');if(!auth.user||!auth.organizations.some(o=>o.id===org))throw new Error('Demo login verification failed.');
  console.log(JSON.stringify({loginUrl:new URL('/app',base).href,email,password,organization:'NEXA Test Academy [DEMO]',verified:{students:academy.students.length,classes:academy.classes.length,enrollments:academy.enrollments.length,ledgerEntries:academy.ledger.length,conversations:dashboard.conversations.length,leads:dashboard.leads.length,bookings:dashboard.appointments.length,projectedMonthlyKRW:academy.summary.projected},notice:'All data is synthetic. No emails, payments or OpenAI calls were made. Keep this password private; do not commit it.'},null,2));

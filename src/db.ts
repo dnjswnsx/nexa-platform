@@ -54,3 +54,20 @@ CREATE TABLE IF NOT EXISTS ai_advices(id TEXT PRIMARY KEY,org_id TEXT NOT NULL R
 CREATE INDEX IF NOT EXISTS usage_org ON usage_events(org_id,created_at);
 INSERT OR IGNORE INTO schema_migrations VALUES(3,datetime('now'));
 `);
+// Migration 4: shared inquiry metadata; companion tables preserve existing schemas.
+db.exec(`
+CREATE TABLE IF NOT EXISTS inquiry_details(
+ conversation_id TEXT PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
+ channel TEXT NOT NULL CHECK(channel IN ('call','sms','kakao','instagram','email','other','form')),
+ source TEXT NOT NULL,contact_name TEXT NOT NULL DEFAULT '',contact_email TEXT NOT NULL DEFAULT '',contact_phone TEXT NOT NULL DEFAULT '',
+ consent_at TEXT NOT NULL,assigned_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+ status TEXT NOT NULL DEFAULT 'new' CHECK(status IN ('new','contacted','waiting','resolved')),
+ follow_up_at TEXT,created_by TEXT REFERENCES users(id) ON DELETE SET NULL,request_key TEXT NOT NULL,
+ UNIQUE(request_key)
+);
+CREATE TABLE IF NOT EXISTS inquiry_notes(id TEXT PRIMARY KEY,conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id),kind TEXT NOT NULL CHECK(kind IN ('note','external_reply')),body TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS inquiry_ai(id TEXT PRIMARY KEY,conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id),summary TEXT NOT NULL,draft TEXT NOT NULL,model TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS inquiry_followup ON inquiry_details(status,follow_up_at);
+INSERT OR IGNORE INTO schema_migrations VALUES(4,datetime('now'));
+`);
+db.exec(`CREATE TABLE IF NOT EXISTS inquiry_controls(conversation_id TEXT PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,status TEXT NOT NULL CHECK(status IN ('new','contacted','waiting','resolved')),assigned_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,follow_up_at TEXT);`);

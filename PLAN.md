@@ -35,3 +35,13 @@ User explicitly requests student records, enrollments, customizable finances and
 - [x] Reusable install/start instructions and secure AI requirements saved to environment draft.
 - [ ] Real OpenAI requests: missing API credential (secure environment settings required).
 - [ ] Full production phases 1–7: see DELIVERY.md; original milestones remain partial, not complete.
+
+
+## Unified inquiries implementation
+- [x] Companion migration preserving existing widget conversations and data.
+- [x] Manual consent-aware call/text/Kakao/social/email capture and isolated leads.
+- [x] Public consultation page with source-specific links and scoped widget/booking continuation.
+- [x] Unified filters/search, member assignment, statuses, follow-up due queue and private notes.
+- [x] Explicitly reviewed AI summaries/grounded drafts; direct NEXA replies and copied external replies with honest staff attestations.
+- [x] Cross-tenant/privacy/idempotency/consent tests plus complete browser workflow.
+- [ ] Direct channel provider adapters: names, supported inbound APIs, business approvals and secure credentials are prerequisites. No simulated connection.
