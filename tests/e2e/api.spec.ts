@@ -22,6 +22,9 @@ test('HTTP authorization, visitor isolation, CSRF and consent validation',async(
  let inquiries=await(await owner.get(`/api/orgs/${id}/inquiries`)).json();expect(inquiries.inquiries.find((i:{id:string})=>i.id===manual.conversationId).status).toBe('resolved');
  await owner.patch(`/api/orgs/${id}/inbox`,{data:{id:manual.conversationId,state:'human'}});
  inquiries=await(await owner.get(`/api/orgs/${id}/inquiries`)).json();expect(inquiries.inquiries.find((i:{id:string})=>i.id===manual.conversationId).status).toBe('new');
+ await owner.patch(`/api/orgs/${id}/inbox`,{data:{id:a.conversationId,state:'closed'}});
+ expect((await owner.patch(`/api/orgs/${id}/inbox`,{data:{id:a.conversationId,reply:'A reviewed reply reopens this NEXA conversation.'}})).status()).toBe(200);
+ inquiries=await(await owner.get(`/api/orgs/${id}/inquiries`)).json();expect(inquiries.inquiries.find((i:{id:string})=>i.id===a.conversationId).status).toBe('contacted');
  await owner.post('/api/auth/logout',{data:{}});expect((await owner.get(`/api/orgs/${id}`)).status()).toBe(401);
  expect((await owner.post('/api/auth/login',{data:{email:`owner-${suffix}@example.test`,password:'long-test-password-123'}})).status()).toBe(200);expect((await owner.get(`/api/orgs/${id}`)).status()).toBe(200);
  await owner.dispose();await outsider.dispose();
