@@ -1,0 +1,26 @@
+# Development deployment with persistent SQLite storage.
+# A paid disk-capable plan is required. Review costs in Render before creating it.
+services:
+  - type: web
+    name: nexa-platform
+    runtime: node
+    plan: starter
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm start -- --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: APP_URL
+        sync: false
+      - key: NEXA_DB_PATH
+        value: /var/data/nexa.sqlite
+      - key: NEXA_AI_MODEL
+        value: gpt-4.1-mini
+      - key: NEXA_AI_DAILY_CAP
+        value: '100'
+    disk:
+      name: nexa-data
+      mountPath: /var/data
+      sizeGB: 1

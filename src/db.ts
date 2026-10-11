@@ -1,0 +1,56 @@
+import Database from 'better-sqlite3';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { randomUUID } from 'node:crypto';
+
+const file = process.env.NEXA_DB_PATH || '.data/nexa.sqlite';
+mkdirSync(dirname(file), { recursive: true });
+export const db = new Database(file);
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+db.pragma('busy_timeout = 5000');
+export const id = () => randomUUID();
+export const now = () => new Date().toISOString();
+export type Row = Record<string, string | number | null>;
+export const one = (sql: string, ...args: (string | number | null)[]) => db.prepare(sql).get(...args) as Row | undefined;
+export const all = (sql: string, ...args: (string | number | null)[]) => db.prepare(sql).all(...args) as Row[];
+export const run = (sql: string, ...args: (string | number | null)[]) => db.prepare(sql).run(...args);
+db.exec(`
+CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,email TEXT NOT NULL UNIQUE,password TEXT NOT NULL,name TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,expires_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS organizations(id TEXT PRIMARY KEY,name TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',timezone TEXT NOT NULL DEFAULT 'Asia/Seoul',locale TEXT NOT NULL DEFAULT 'en',country TEXT NOT NULL DEFAULT 'KR',email TEXT NOT NULL DEFAULT '',agent_id TEXT NOT NULL UNIQUE,origins TEXT NOT NULL DEFAULT '[]',created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS members(org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,role TEXT NOT NULL CHECK(role IN ('owner','admin','staff')),PRIMARY KEY(org_id,user_id));
+CREATE TABLE IF NOT EXISTS knowledge(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,question TEXT NOT NULL,answer TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS conversations(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,visitor_hash TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'ai' CHECK(state IN ('ai','human','closed')),created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS messages(id TEXT PRIMARY KEY,conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,role TEXT NOT NULL CHECK(role IN ('visitor','ai','staff')),body TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS leads(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,conversation_id TEXT REFERENCES conversations(id),name TEXT NOT NULL,email TEXT NOT NULL,interest TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'New',consent_at TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS slots(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,starts_at TEXT NOT NULL,ends_at TEXT NOT NULL,CHECK(ends_at>starts_at),UNIQUE(org_id,starts_at));
+CREATE TABLE IF NOT EXISTS appointments(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,slot_id TEXT NOT NULL REFERENCES slots(id),lead_id TEXT NOT NULL REFERENCES leads(id),status TEXT NOT NULL DEFAULT 'confirmed' CHECK(status IN ('confirmed','cancelled')),request_key TEXT NOT NULL,created_at TEXT NOT NULL,UNIQUE(org_id,request_key));
+CREATE UNIQUE INDEX IF NOT EXISTS slot_booking_unique ON appointments(slot_id) WHERE status='confirmed';
+CREATE INDEX IF NOT EXISTS conversations_org ON conversations(org_id,created_at);
+CREATE INDEX IF NOT EXISTS knowledge_org ON knowledge(org_id);
+CREATE INDEX IF NOT EXISTS messages_conversation ON messages(conversation_id,created_at);
+CREATE INDEX IF NOT EXISTS leads_org ON leads(org_id,created_at);
+CREATE TABLE IF NOT EXISTS notifications(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,body TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS audit_logs(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS rate_limits(key TEXT PRIMARY KEY,count INTEGER NOT NULL,expires_at INTEGER NOT NULL);
+INSERT OR IGNORE INTO schema_migrations VALUES(1,datetime('now'));
+`);
+// Migration 2: academy operations. Amounts are integer minor units (KRW won, USD cents).
+db.exec(`
+CREATE TABLE IF NOT EXISTS classes(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,name TEXT NOT NULL,monthly_fee INTEGER NOT NULL CHECK(monthly_fee>=0),monthly_cost INTEGER NOT NULL DEFAULT 0 CHECK(monthly_cost>=0),capacity INTEGER NOT NULL CHECK(capacity>0),created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS students(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,name TEXT NOT NULL,guardian_email TEXT NOT NULL DEFAULT '',consent_at TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS enrollments(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,student_id TEXT NOT NULL REFERENCES students(id),class_id TEXT NOT NULL REFERENCES classes(id),monthly_fee INTEGER NOT NULL CHECK(monthly_fee>=0),joined_at TEXT NOT NULL,ended_at TEXT);
+CREATE UNIQUE INDEX IF NOT EXISTS enrollment_active ON enrollments(student_id,class_id) WHERE ended_at IS NULL;
+CREATE TABLE IF NOT EXISTS ledger(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,class_id TEXT REFERENCES classes(id),kind TEXT NOT NULL CHECK(kind IN ('income','expense')),amount INTEGER NOT NULL CHECK(amount>0),category TEXT NOT NULL,occurred_at TEXT NOT NULL,request_key TEXT NOT NULL,created_at TEXT NOT NULL,UNIQUE(org_id,request_key));
+CREATE INDEX IF NOT EXISTS enrollment_org ON enrollments(org_id,class_id);
+CREATE INDEX IF NOT EXISTS ledger_org ON ledger(org_id,occurred_at);
+INSERT OR IGNORE INTO schema_migrations VALUES(2,datetime('now'));
+`);
+db.exec(`
+CREATE TABLE IF NOT EXISTS usage_events(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,purpose TEXT NOT NULL,model TEXT NOT NULL,input_tokens INTEGER NOT NULL,output_tokens INTEGER NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS ai_advices(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,model TEXT NOT NULL,locale TEXT NOT NULL,snapshot TEXT NOT NULL,response TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS usage_org ON usage_events(org_id,created_at);
+INSERT OR IGNORE INTO schema_migrations VALUES(3,datetime('now'));
+`);

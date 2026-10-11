@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'tests/e2e',workers:1,use:{baseURL:'http://localhost:3100',trace:'retain-on-failure',launchOptions:{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||'/usr/bin/chromium'}},webServer:{command:'NEXA_DB_PATH=.data/e2e.sqlite APP_URL=http://localhost:3100 npm start -- --port 3100',url:'http://localhost:3100/api/health',reuseExistingServer:false,timeout:120000}});

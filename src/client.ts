@@ -1,0 +1,1 @@
+export async function request(path:string,method='GET',data?:unknown,headers?:Record<string,string>){const res=await fetch(`/api/${path}`,{method,headers:{'Content-Type':'application/json',...headers},body:data===undefined?undefined:JSON.stringify(data)});const b=await res.json();if(!res.ok)throw new Error(b.error||'Request failed');return b;}
