@@ -71,3 +71,22 @@ CREATE INDEX IF NOT EXISTS inquiry_followup ON inquiry_details(status,follow_up_
 INSERT OR IGNORE INTO schema_migrations VALUES(4,datetime('now'));
 `);
 db.exec(`CREATE TABLE IF NOT EXISTS inquiry_controls(conversation_id TEXT PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,status TEXT NOT NULL CHECK(status IN ('new','contacted','waiting','resolved')),assigned_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,follow_up_at TEXT);`);
+// Migration 5: an academy's shared action plan and explicit, aggregate-only owner briefs.
+db.exec(`
+CREATE TABLE IF NOT EXISTS owner_tasks(
+ id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+ title TEXT NOT NULL,details TEXT NOT NULL DEFAULT '',section TEXT NOT NULL,
+ priority TEXT NOT NULL CHECK(priority IN ('high','medium','low')),
+ status TEXT NOT NULL DEFAULT 'todo' CHECK(status IN ('todo','done')),
+ due_at TEXT,assigned_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+ source_key TEXT,request_key TEXT NOT NULL,created_by TEXT NOT NULL REFERENCES users(id),
+ created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(org_id,request_key)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS task_source_unique ON owner_tasks(org_id,source_key) WHERE source_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS tasks_org ON owner_tasks(org_id,status,due_at);
+CREATE TABLE IF NOT EXISTS owner_briefs(
+ id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+ model TEXT NOT NULL,locale TEXT NOT NULL,snapshot TEXT NOT NULL,response TEXT NOT NULL,created_at TEXT NOT NULL
+);
+INSERT OR IGNORE INTO schema_migrations VALUES(5,datetime('now'));
+`);

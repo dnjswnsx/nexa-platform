@@ -47,12 +47,15 @@ try{
  }
  for(const channel of ['call','sms','kakao']){
  const inquiry=await api(`orgs/${org}/inquiries`,'POST',{name:`Test ${channel} Guardian [TEST]`,email:`test-${channel}@example.test`,phone:'',message:`[TEST] A manually recorded ${channel} inquiry about consultation options.`,channel,source:channel,consent:true,adult:true,requestKey:randomUUID()});
- const auth=await api('auth');await api(`orgs/${org}/inquiries`,'PATCH',{id:inquiry.conversationId,status:'waiting',assignedUserId:auth.user.id,followUpAt:new Date(Date.now()+86400000).toISOString()});
+ const auth=await api('auth');await api(`orgs/${org}/inquiries`,'PATCH',{id:inquiry.conversationId,status:'waiting',assignedUserId:auth.user.id,followUpAt:new Date(Date.now()+(channel==='kakao'?-3600000:86400000)).toISOString()});
  await api(`orgs/${org}/inquiry-notes`,'POST',{id:inquiry.conversationId,kind:'note',body:'[TEST] Synthetic manual capture only. No provider connection or actual communication.'});
  }
+ const ownerAuth=await api('auth');
+ for(const [title,details,section,priority] of [['Review next month’s class schedule [TEST]','[TEST] Compare capacity and staffing in the growth planner.','growth','medium'],['Prepare the demo consultation [TEST]','[TEST] Review the consenting synthetic guardian’s inquiry before the scheduled consultation.','appointments','high']])await api(`orgs/${org}/tasks`,'POST',{title,details,section,priority,assignedUserId:ownerAuth.user.id,dueAt:new Date(Date.now()+86400000).toISOString(),requestKey:randomUUID()});
+ const plan=await api(`orgs/${org}/tasks`);if(plan.tasks.length!==2)throw new Error('Task seed verification failed.');
  academy=await api(`orgs/${org}/academy`);dashboard=await api(`orgs/${org}`);
  if(academy.students.length!==12||academy.enrollments.length!==12||dashboard.leads.length!==6||dashboard.appointments.length!==1)throw new Error('Seed verification failed.');
  await api('auth/logout','POST',{});
  await api('auth/login','POST',{email,password});const auth=await api('auth');if(!auth.user||!auth.organizations.some(o=>o.id===org))throw new Error('Demo login verification failed.');
- console.log(JSON.stringify({loginUrl:new URL('/app',base).href,email,password,organization:'NEXA Test Academy [DEMO]',verified:{students:academy.students.length,classes:academy.classes.length,enrollments:academy.enrollments.length,ledgerEntries:academy.ledger.length,conversations:dashboard.conversations.length,leads:dashboard.leads.length,bookings:dashboard.appointments.length,projectedMonthlyKRW:academy.summary.projected},notice:'All data is synthetic. No emails, payments or OpenAI calls were made. Keep this password private; do not commit it.'},null,2));
+ console.log(JSON.stringify({loginUrl:new URL('/app',base).href,email,password,organization:'NEXA Test Academy [DEMO]',verified:{students:academy.students.length,classes:academy.classes.length,enrollments:academy.enrollments.length,ledgerEntries:academy.ledger.length,conversations:dashboard.conversations.length,leads:dashboard.leads.length,bookings:dashboard.appointments.length,tasks:plan.tasks.length,projectedMonthlyKRW:academy.summary.projected},notice:'All data is synthetic. No emails, payments or OpenAI calls were made. Keep this password private; do not commit it.'},null,2));
 }catch(error){console.error(error.message);console.error('A partial demo may exist if a later request failed. Existing accounts are never overwritten.');process.exitCode=1;}

@@ -6,6 +6,7 @@ import { z, ZodError } from 'zod';
 import { all, db, id, now, one, run } from '@/db';
 import { authorize, audit, checkOrigin, currentUser, hash, HttpError, limit, organizationList, token } from '@/security';
 import { academyAdvice, academyData, academyMutation } from '@/academy';
+import { createTask, operationsData, ownerBrief, taskData, updateTask } from '@/operations';
 import {aiConfigured} from '@/ai';
 import { answer, availableSlots, book } from '@/domain';
 export const runtime = 'nodejs';
@@ -87,6 +88,8 @@ async function handle(req: Request) {
  }
  if(p[0]!=='orgs' || !p[1])throw new HttpError(404,'Not found.');
  const org=p[1];const action=p[2];
+ if(action==='operations'){authorize(req,org,true);if(method==='GET')return json(operationsData(org));if(method==='POST'&&p[3]==='brief'){const v=z.object({locale:z.enum(['en','ko'])}).parse(await body(req));return json(await ownerBrief(org,String(u.id),v.locale));}throw new HttpError(405,'Method not allowed.');}
+ if(action==='tasks'){authorize(req,org);if(method==='GET')return json(taskData(org));if(method==='POST'){const input=await body(req);if(input&&typeof input==='object'&&'suggestionKey' in input)authorize(req,org,true);return json(createTask(org,String(u.id),input),201);}if(method==='PATCH')return json(updateTask(org,String(u.id),await body(req)));throw new HttpError(405,'Method not allowed.');}
  if(action==='inquiries'){authorize(req,org);if(method==='GET')return json(inquiryList(org));if(method==='POST'){const input=manualSchema.parse(await body(req));const created=createInquiry(org,input,String(u.id));return json({conversationId:created.conversationId,leadId:created.leadId},201);}if(method==='PATCH')return json(updateInquiry(org,String(u.id),await body(req)));throw new HttpError(405,'Method not allowed.');}
  if(action==='inquiry-notes'){authorize(req,org);if(method!=='POST')throw new HttpError(405,'POST required.');return json(addInquiryNote(org,String(u.id),await body(req)));}
  if(action==='inquiry-draft'){authorize(req,org);if(method!=='POST')throw new HttpError(405,'POST required.');return json(await inquiryDraft(org,String(u.id),await body(req)));}

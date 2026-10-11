@@ -30,6 +30,8 @@ For manual call/SMS/Kakao capture, public intake links, staff assignment/follow-
 6. Academy management: create classes (capacity, tuition, planned costs), consent-attested student records, enrollments with custom tuition, and income/expense records with user-defined categories.
 7. Inspect class utilization, 30-day enrollment growth, current-enrollment tuition projections and rule-based guidance. When OpenAI is configured, request actual AI advice using only aggregate metrics.
 
+8. Use Today to prioritize real follow-ups, capacity and costs; save priorities as assigned tasks in Team plan. Test tuition and retention assumptions in Growth planner, then optionally request an aggregate-only owner AI brief. See [docs/OWNER-WORKSPACE.md](docs/OWNER-WORKSPACE.md).
+
 ## OpenAI / ChatGPT API
 
 A ChatGPT subscription does not supply API billing. Create an OpenAI API project with model access and funded API billing. Enter the API credential **securely in environment settings**, never in chat, source control or browser variables.
@@ -60,7 +62,7 @@ Academy guidance uses computed class aggregates, omits names of classes/students
 
 ## Database / migrations / recovery
 
-`src/db.ts` applies additive versioned migrations 1–4 on server initialization. To apply them locally, start the app and request `/api/health`. Migration versions are in `schema_migrations`. There is no PostgreSQL/Supabase migration or production RLS yet.
+`src/db.ts` applies additive versioned migrations 1–5 on server initialization. To apply them locally, start the app and request `/api/health`. Migration versions are in `schema_migrations`. There is no PostgreSQL/Supabase migration or production RLS yet.
 
 Before upgrades, use SQLite's online backup API or stop the server and copy the entire database plus any WAL/SHM state. Do not copy only the main file while a writer is active. Restore an offline backup to roll back; there is no destructive down migration. Test recovery on a copy, not your only database.
 
@@ -86,7 +88,9 @@ Unit/integration tests mock OpenAI and are **not live provider tests**. Browser 
 - `src/domain.ts`: atomic consultation bookings, tenant-scoped approved knowledge routing.
 - `src/academy.ts`: student/class/enrollment ledger operations and aggregate analysis.
 - `src/ai.ts`: server-side structured OpenAI adapter and token records.
-- `src/components/Academy.tsx`: academy operations interface.
+- `src/operations.ts`: owner priorities, tenant-scoped persistent tasks and aggregate OpenAI briefings.
+- `src/planning.ts`: transparent capacity-limited scenario arithmetic.
+- `src/components`: bilingual owner action center, team plan, growth planner, keyboard navigation and academy operations.
 - `public/widget.js`: actual isolated embeddable widget; `embed-example.html`: test host.
 - `tests`: meaningful domain, authorization, mocked provider and browser workflow tests.
 - `docs`: provider configuration, embedding and launch guidance.

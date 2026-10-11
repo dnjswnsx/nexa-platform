@@ -10,9 +10,9 @@ A runnable local NEXA development application was implemented from an empty repo
 | `npm_config_devdir=/workspace/.node-gyp npm ci --cache /workspace/.npm-cache` | Passed; fresh frozen installation, native SQLite compile/header verification preserved |
 | `npm run typecheck` | Passed |
 | `npm run lint` | Passed |
-| `npm test` | 42 passed across 4 suites |
+| `npm test` | 53 passed across 5 suites |
 | `npm run build` | Passed with Next.js 16.4 |
-| `npm run test:e2e` | 5 passed using installed system Chromium |
+| `npm run test:e2e` | 7 passed using installed system Chromium |
 | Production server `/api/health` | Passed; SQLite connected |
 
 Browser suites verify signup, organization creation, FAQs, consent-based lead capture, consultation booking, human takeover/reply, dashboard persistence after refresh, Korean navigation/mobile menu, student/class/enrollment/cash-record persistence, configured-fee projections, HTTP tenant isolation, CSRF rejection, visitor isolation, absent-consent rejection and actual external-origin widget delivery. Unit/integration suites additionally cover booking idempotency/uniqueness/cancellation, capacity enforcement, customized fees, withdrawals, provider failures, aggregate-only AI payloads and persisted token/advice records. Provider checks use mocks and do not prove real API service behavior. CI workflow is written; a remote CI run has not occurred.
@@ -23,7 +23,7 @@ Initial test failures were diagnosed and corrected: missing icon/module format, 
 
 | Capability | Implemented / tested / configured / blocked |
 | --- | --- |
-| Bilingual marketing, pricing, account UI, dark mode, responsive dashboard | Implemented; locale/mobile navigation tested. Proposed prices only; some standalone marketing pages remain absent. No accessibility certification. |
+| Bilingual academy landing, account UI, dark mode, responsive dashboard | Redesigned with bundled MIT education visuals, interactive workflow previews and grouped navigation; keyboard/mobile/locale flows tested. Some standalone marketing pages remain absent. No accessibility certification. |
 | Password login/signup/logout, hashed sessions | Implemented and tested for local development. Email verification, recovery and OAuth not implemented. |
 | Organizations, membership checks, settings/switching | Implemented; tenant authorization tested. Invites/platform admin/complete RBAC UI not implemented. |
 | Approved FAQ knowledge | Implemented/tested. PDF/DOCX/TXT upload, website import, vector retrieval and edit UI not implemented. |
@@ -31,13 +31,16 @@ Initial test failures were diagnosed and corrected: missing icon/module format, 
 | Grounded bilingual FAQ response / human fallback | Implemented/tested. OpenAI selects approved FAQ IDs for paraphrases; approved text is returned verbatim. Automatic response translation and broad free-form AI assistant pending. |
 | Consent-based leads, status filtering/search and CSV | Implemented; lead capture tested. Assignment, tags, notes, duplicate handling and complete CRM timeline pending. |
 | Atomic bookings, availability publication, cancellation, idempotency | Implemented; uniqueness/cancellation tests passed. Staff schedules, buffers, blackout rules, public rescheduling and reminders pending. |
-| Human inbox, near-real-time polling, takeover/reply/close/reopen | Implemented; takeover/reply tested. Internal notes, assignment, summaries and unread counts pending. |
+| Human inbox, near-real-time polling, takeover/reply/close/reopen | Implemented; takeover/reply tested. Unified Inbox includes private notes, assignment, follow-ups and optional reviewed AI summaries/drafts. Unread counts remain pending. |
 | In-app event notifications | Persisted and exercised by bookings/leads. Durable scheduling/retry jobs, email and automations not implemented. |
-| Dashboard actual counts / lead capture ratio | Implemented and exercised; no fake activity. Date charts, response metrics, full attribution/funnel and customizable reports pending. |
+| Dashboard actual counts / lead capture ratio | Implemented and exercised; no fake activity. Six-month recorded-cash charts and exact amount tables are implemented. Response metrics, full attribution/funnel and customizable reports remain pending. |
 | Classes, student registry, consent attestation, capacity, enrollment/withdrawal | Implemented; persistence, capacity, consent and withdrawal tests passed. Attendance, student portal, bulk import, field builder and legal consent/retention lifecycle pending. |
 | Custom enrollment tuition, class cost, ledger categories, manual cash records | Implemented; exact monetary calculations and ledger idempotency tested. Transaction edit/reversal, invoices and reconciliation pending. |
 | Class recurring-tuition projections, utilization and enrollment growth | Implemented and tested; assumptions shown. No guaranteed collections or statistically validated forecast. |
 | OpenAI growth/revenue-interpretation guidance | Implemented; mocked provider, no-PII aggregate input, output IDs, usage/advice persistence and failure tests passed. Actual OpenAI verification blocked by missing API key. |
+| Owner Today workspace, priorities and persistent shared tasks | Implemented; tenant isolation, shared staff access, owner-only metrics, assignments, completion, duplicate prevention and browser persistence tested. Rules identify overdue follow-ups, staff handoffs, capacity, costs and enrollment decline. No reminder delivery is claimed. |
+| Interactive growth scenario planner | Implemented; mixed custom fees, retention, capacity caps, cost and fee adjustments, zero-fee break-even and unchanged underlying enrollment/cash records tested. Scenario saves to a review task; no demand forecast is claimed. |
+| OpenAI owner briefing | Implemented; schema validation, aggregate-only payload, no name/contact/task text, usage and brief persistence tested with mocks. Actions require staff review and explicit task creation. No live key available. |
 | OpenAI server adapter / timeout / structured output / request cap | Implemented/tested with mocks. Real model access/API billing/network propagation need verification. |
 | Stripe, Korean billing, Resend, Google Calendar | Not implemented. UI accurately reports unavailable. Keys alone will not enable these services. |
 | Production Supabase PostgreSQL/Auth/Storage/RLS | Not implemented. Local SQLite is not suitable for Vercel or public production deployment. |
@@ -68,3 +71,10 @@ The app now trusts the server-controlled RENDER_EXTERNAL_URL alongside an explic
 Implemented manual calls/SMS/Kakao/Instagram/email capture, consenting leads, source-specific public consultation forms and links, a shared inbox that includes existing website chats, contact/channel/status/search filters, member assignment, persisted follow-up due queue, staff-only notes and recorded external replies. OpenAI summaries and approved-FAQ reply drafts require explicit staff sharing permission and never send themselves. Existing/known contact fields and recognizable email/phone strings are removed from bounded AI inputs; free-text residual PII remains a documented limitation. External-channel send attempts are rejected; staff copy/review/send in the original app, then record their action. Actual telephone/SMS/Kakao provider collection, webhook ingestion and message delivery remain unconnected pending provider selection/access. Intake links carry self-reported source labels, not verified provider attribution. No automated follow-up notifications are claimed.
 
 Validation: 42 unit/integration tests and 5 browser suites passed, including the real manual-call/public-Kakao-link/assignment/due-followup/private-note/customer-reply workflow. No live OpenAI or telecom/Kakao provider access was verified. Migration 4 adds companion metadata/control/notes/AI-artifact tables without changing existing table layouts or discarding records. Guide: docs/INQUIRIES.md.
+
+## Owner workspace redesign
+The academy interface now includes Today, Team plan and Growth planner, grouped navigation, keyboard quick search (Ctrl/Cmd+K), shortcuts to operational forms, larger readable type, clearer empty states, Korean/English and responsive light/dark layouts. Real record-based priorities can become persistent assigned tasks, with shared staff updates and owner-only financial metrics. The deterministic planner shows explicit enrollment/tuition/cost assumptions within capacity and saves reviewed scenarios as tasks. Optional OpenAI owner briefs use only aggregate metrics and never send communications or change fees/enrollment. The demo seeder adds two synthetic assigned tasks and an overdue follow-up signal. Microsoft Fluent Emoji assets are bundled under MIT with copyright/license and attribution retained. No remote image request is made during page viewing. Guide: docs/OWNER-WORKSPACE.md; sources: docs/VISUALS.md.
+
+Browser validation caught and fixed a planner validation issue with full class records; regression coverage uses actual record-shaped inputs. The final browser check includes task persistence/completion, keyboard form navigation, exact scenario values, scenario saving without changing enrollments, small-screen overflow checks, Korean mobile and dark layouts, and interactive landing previews. No live OpenAI or hosted Render validation was performed.
+
+Final validation for the owner workspace: typecheck, lint, 53 unit/integration tests, production build and 7 browser tests passed. The isolated demo seeder verified 12 students/enrollments, 3 classes, 6 ledger entries, 6 inquiries/leads, 1 appointment, 2 assigned tasks, 1 overdue follow-up signal and KRW 3,420,000 current tuition baseline. Its temporary test database was removed; this did not create an account on the user’s hosted Render service.
