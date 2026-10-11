@@ -10,7 +10,7 @@ A runnable local NEXA development application was implemented from an empty repo
 | `npm_config_devdir=/workspace/.node-gyp npm ci --cache /workspace/.npm-cache` | Passed; fresh frozen installation, native SQLite compile/header verification preserved |
 | `npm run typecheck` | Passed |
 | `npm run lint` | Passed |
-| `npm test` | 25 passed across 2 suites |
+| `npm test` | 31 passed across 3 suites |
 | `npm run build` | Passed with Next.js 16.4 |
 | `npm run test:e2e` | 4 passed using installed system Chromium |
 | Production server `/api/health` | Passed; SQLite connected |
@@ -60,3 +60,6 @@ Required user action: enter the API credential securely in environment settings,
 7. Complete security/accessibility/performance/live-provider QA and deployment. See docs/SECURITY.md and docs/PROVIDERS.md.
 
 Exact startup, variables, migration and deployment instructions: README.md. Architecture and milestones: PLAN.md. The remote was empty during the initial audit. Subsequent GitHub delivery is recorded in Git history; web hosting instructions are in docs/HOSTING.md.
+
+## Render signup correction
+The app now trusts the server-controlled RENDER_EXTERNAL_URL alongside an explicit APP_URL, instead of comparing the public HTTPS browser origin only to the internal HTTP request URL. Secure session cookies and own-site widget checks share the same origin configuration. Verified with a local Render proxy simulation: signup 200, authenticated secure session, organization creation 201, widget session 200 and unrelated-origin rejection 403. All 31 unit/integration and 4 browser tests passed. The user’s actual hosted deployment has not yet been verified.

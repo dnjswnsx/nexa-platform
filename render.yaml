@@ -12,8 +12,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 24.19.0
-      - key: APP_URL
-        sync: false
+      # Render supplies RENDER_EXTERNAL_URL automatically.
+      # Set APP_URL separately only when using a custom domain.
       - key: NEXA_DB_PATH
         value: /var/data/nexa.sqlite
       - key: NEXA_AI_MODEL

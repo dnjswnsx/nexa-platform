@@ -1,3 +1,4 @@
+import { appOrigins, isAppOrigin } from '@/origin';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { z, ZodError } from 'zod';
@@ -29,7 +30,7 @@ async function handle(req: Request) {
  } else if(p[1]!=='login')throw new HttpError(404,'Not found.');
  else if(!u || !await bcrypt.compare(hash(b.password),String(u.password)))throw new HttpError(401,'Invalid email or password.');
  const t=token();run('DELETE FROM sessions WHERE expires_at<?',now());run('INSERT INTO sessions VALUES(?,?,?)',hash(t),String(u!.id),new Date(Date.now()+7*86400000).toISOString());
- const res=json({ok:true});res.cookies.set('nexa_session',t,{httpOnly:true,sameSite:'lax',secure:url.protocol==='https:',path:'/',maxAge:604800});return res;
+ const res=json({ok:true});res.cookies.set('nexa_session',t,{httpOnly:true,sameSite:'lax',secure:appOrigins(req.url).some(origin=>origin.startsWith('https://')),path:'/',maxAge:604800});return res;
  }
  if(p[0]==='public') {
  const agent=one('SELECT * FROM organizations WHERE agent_id=?',p[1]||'');if(!agent)throw new HttpError(404,'Assistant not found.');
@@ -40,8 +41,8 @@ async function handle(req: Request) {
  if(action==='session' && method==='POST') {
  limit(`session:${org}`,100);
  const b=z.object({hostOrigin:z.string().url()}).parse(await body(req));const host=new URL(b.hostOrigin).origin;
- const allowed: string[]=JSON.parse(String(agent.origins));const own=new URL(process.env.APP_URL||req.url).origin;
- if(host!==own && !allowed.includes(host))throw new HttpError(403,'This website is not approved for the widget.');
+ const allowed: string[]=JSON.parse(String(agent.origins));
+ if(!isAppOrigin(host,req.url) && !allowed.includes(host))throw new HttpError(403,'This website is not approved for the widget.');
  const v=token();const c=id();run('INSERT INTO conversations VALUES(?,?,?,?,?)',c,org,hash(v),'ai',now());return json({conversationId:c,visitorToken:v,business:agent.name});
  }
  if(!/^[a-f0-9]{64}$/.test(visitor))throw new HttpError(401,'Visitor session required.');

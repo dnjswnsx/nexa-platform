@@ -1,3 +1,4 @@
+import { isAppOrigin } from './origin';
 import { createHash, randomBytes } from 'node:crypto';
 import { all, db, id, now, one, run, type Row } from './db';
 export class HttpError extends Error { constructor(public status: number, message: string) { super(message); } }
@@ -15,8 +16,7 @@ export function authorize(req: Request, orgId: string, admin = false) {
 }
 export function checkOrigin(req: Request) {
  const origin = req.headers.get('origin');
- const expected = new URL(process.env.APP_URL || req.url).origin;
- if (!origin || origin !== expected) throw new HttpError(403,'Invalid request origin.');
+ if (!isAppOrigin(origin, req.url)) throw new HttpError(403,'Invalid request origin.');
 }
 export function limit(key: string, max = 30, seconds = 60) {
  db.transaction(() => {

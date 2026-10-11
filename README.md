@@ -34,7 +34,7 @@ A ChatGPT subscription does not supply API billing. Create an OpenAI API project
 
 | Variable | Purpose | Required |
 | --- | --- | --- |
-| `APP_URL` | Exact app origin; same-origin writes are enforced | Set for deployment |
+| `APP_URL` | Exact app/custom-domain origin; Render also automatically trusts its server-provided `RENDER_EXTERNAL_URL` | Required outside Render or for custom domains |
 | `NEXA_DB_PATH` | SQLite location, default `.data/nexa.sqlite` | Optional |
 | `NEXA_AI_API_KEY` | Server OpenAI credential, HTTPS destination `api.openai.com` | For AI |
 | `NEXA_AI_MODEL` | Default `gpt-4.1-mini`; configure a Responses/structured-output compatible model available to your project | Optional |
